@@ -239,21 +239,30 @@ def history_to_dicts(history):
     for entry in history:
         if isinstance(entry, dict):
             result.append(entry)
-        else:
-            d = {"role": entry.role, "content": entry.content or ""}
-            if getattr(entry, "tool_calls", None):
-                d["tool_calls"] = [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
-                    }
-                    for tc in entry.tool_calls
-                ]
-            result.append(d)
+            continue
+
+        d = {"role": entry.role, "content": entry.content or ""}
+
+        if getattr(entry, "tool_calls", None):
+            d["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
+                }
+                for tc in entry.tool_calls
+            ]
+
+        if getattr(entry, "tool_call_id", None):
+            d["tool_call_id"] = entry.tool_call_id
+            if getattr(entry, "name", None):
+                d["name"] = entry.name
+
+        result.append(d)
+
     return result
 
 
@@ -356,6 +365,7 @@ if submitted and query:
                         st.session_state.history.append(msg)
                         st.session_state.history.append({
                             "role": "tool",
+                            "name": tool_name,
                             "tool_call_id": tool_call.id,
                             "content": str(tool_result),
                         })
